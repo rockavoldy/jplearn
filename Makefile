@@ -1,6 +1,5 @@
 .PHONY: help infra-up infra-down backend frontend extension extension-zip \
-	import-dict build-backend build-frontend docker-build docker-push \
-	pages-deploy
+	import-dict build-backend build-frontend docker-build docker-push
 
 # Image coordinates for GHCR. REPO is auto-detected from the git remote and
 # lower-cased (GHCR requires lowercase repository names).
@@ -9,7 +8,6 @@ REPO         ?= $(shell git config --get remote.origin.url 2>/dev/null | sed -E 
 IMAGE_PREFIX ?= $(REGISTRY)/$(REPO)
 VERSION      ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo dev)
 PLATFORMS    ?= linux/amd64,linux/arm64
-PAGES_PROJECT ?= jp-reader
 
 help:
 	@echo "Targets:"
@@ -25,7 +23,6 @@ help:
 	@echo "  extension-zip  Build and package the extension into a loadable zip"
 	@echo "  docker-build   Build the backend image locally"
 	@echo "  docker-push    Build and push the backend image to GHCR"
-	@echo "  pages-deploy   Build and deploy the frontend to Cloudflare Pages (wrangler)"
 
 infra-up:
 	docker compose up -d
@@ -64,7 +61,3 @@ docker-push:
 	docker buildx build --platform $(PLATFORMS) \
 		-t $(IMAGE_PREFIX)-backend:$(VERSION) --push ./backend
 
-# Deploy the SPA to Cloudflare Pages. Requires wrangler auth (CLOUDFLARE_API_TOKEN
-# + CLOUDFLARE_ACCOUNT_ID) and VITE_API_BASE_URL set in the environment.
-pages-deploy: build-frontend
-	cd frontend && npx wrangler pages deploy dist --project-name=$(PAGES_PROJECT)

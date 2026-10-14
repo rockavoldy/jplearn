@@ -10,7 +10,7 @@ This repository implements the architecture described in [`project_plan.md`](pro
 
 | Component      | Where it runs                          | Notes                                          |
 | -------------- | -------------------------------------- | ---------------------------------------------- |
-| Frontend (SPA) | **Cloudflare Pages**                   | Static Vue 3 build, deployed via wrangler      |
+| Frontend (SPA) | **Cloudflare Pages**                   | Static Vue 3 build, deployed via Git integration |
 | Backend (API)  | **Your own server via Docker**         | Distroless Go image, `:8080`                   |
 | Object storage | **Cloudflare R2**                      | S3-compatible; offloads EPUB assets            |
 | Database       | PostgreSQL (on your server)            | JSONB + GIN indexes                            |
@@ -79,7 +79,6 @@ backend/
   internal/api/            # HTTP handlers + middleware (API key, CORS)
 frontend/                  # Vue 3 SPA (deployed to Cloudflare Pages)
   public/_redirects        # SPA history fallback for Pages
-  wrangler.toml            # Cloudflare Pages project config
 extension/                 # Manifest V3 browser extension
 docker-compose.yml         # Local dev infra (Postgres + MinIO)
 docker-compose.prod.yml    # Production (Postgres + backend image, R2)
@@ -219,30 +218,34 @@ curl -X POST https://api.example.com/api/articles \
 
 ### 3. Frontend (Cloudflare Pages)
 
-The SPA is deployed to Cloudflare Pages by
-[`.github/workflows/pages-deploy.yml`](.github/workflows/pages-deploy.yml) on
-pushes to `main` that touch `frontend/`.
+The SPA is deployed to Cloudflare Pages using **Git integration** — no wrangler
+CLI, API token, or GitHub Actions workflow required. Cloudflare clones the repo,
+builds the SPA, and redeploys automatically on every push to `main`.
 
-**Required GitHub configuration:**
+**One-time dashboard setup:**
 
-- Repository variable `VITE_API_BASE_URL` → your backend URL
-  (e.g. `https://api.example.com`).
-- Repository secrets `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`
-  (an API token with *Cloudflare Pages: Edit* permission).
-- Optional variable `VITE_ENABLE_EPUB_UPLOAD` (`false` by default).
+1. Cloudflare dashboard → **Workers & Pages** → **Create** → **Pages** →
+   **Connect to Git**, then select the GitHub repository.
+2. Configure the build settings:
+   - Project name: `jp-reader`
+   - Production branch: `main`
+   - Build command: `npm run build`
+   - Build output directory: `dist`
+   - Root directory: `frontend`
+3. Add environment variables for the **Production** (and **Preview**)
+   environment:
+   - `VITE_API_BASE_URL` → your backend URL (e.g. `https://api.example.com`)
+   - `VITE_ENABLE_EPUB_UPLOAD` → `false`
+   - `NODE_VERSION` → `20` (optional; recommended for Vite 5)
+4. Click **Save and Deploy**.
+
+[`frontend/vite.config.js`](frontend/vite.config.js) already reads `VITE_*`
+values from the environment via `loadEnv`, so the dashboard variables are picked
+up at build time with no committed `.env` file.
 
 The SPA uses Vue Router history mode; [`frontend/public/_redirects`](frontend/public/_redirects)
-provides the `/*  /index.html  200` fallback so deep links work on Pages.
-
-Deploy manually instead with:
-
-```bash
-cd frontend
-VITE_API_BASE_URL=https://api.example.com npm run build
-npx wrangler pages deploy dist --project-name=jp-reader
-```
-
-or via the Makefile: `make pages-deploy` (set `VITE_API_BASE_URL` first).
+provides the `/*  /index.html  200` fallback so deep links work on Pages. Vite
+copies that file into `dist/` during the build.
 
 > The old frontend nginx image is no longer published — the SPA is served by
 > Cloudflare Pages.
