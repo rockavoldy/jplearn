@@ -51,7 +51,11 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /api/articles", s.handleListArticles)
 	mux.HandleFunc("GET /api/articles/{id}", s.handleGetArticle)
 
-	mux.HandleFunc("POST /api/epubs/upload", s.handleEPUBUpload)
+	// EPUB upload is disabled by default and only registered when explicitly
+	// enabled via ENABLE_EPUB_UPLOAD, so the route 404s otherwise.
+	if s.cfg.EnableEPUBUpload {
+		mux.HandleFunc("POST /api/epubs/upload", s.handleEPUBUpload)
+	}
 	mux.HandleFunc("GET /api/books", s.handleListBooks)
 	mux.HandleFunc("GET /api/books/{id}/chapters", s.handleListChapters)
 	mux.HandleFunc("GET /api/chapters/{id}", s.handleGetChapter)
@@ -59,5 +63,10 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /api/images/{id}", s.handleGetImage)
 	mux.HandleFunc("GET /api/dictionary", s.handleDictionary)
 
-	return recoverMiddleware(s.logger)(corsMiddleware(s.cfg.CORSOrigins)(loggingMiddleware(s.logger)(mux)))
+	// apiKeyMiddleware only enforces the key on write methods; reads stay public.
+	handler := apiKeyMiddleware(s.cfg.APIKey)(mux)
+	handler = loggingMiddleware(s.logger)(handler)
+	handler = corsMiddleware(s.cfg.CORSOrigins)(handler)
+	handler = recoverMiddleware(s.logger)(handler)
+	return handler
 }

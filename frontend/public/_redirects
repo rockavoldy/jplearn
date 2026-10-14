@@ -1,0 +1,3 @@
+# Cloudflare Pages SPA fallback.
+# Vue Router uses history mode, so any unknown path must serve index.html.
+/*  /index.html  200

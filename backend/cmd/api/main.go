@@ -70,6 +70,14 @@ func main() {
 		IdleTimeout:       120 * time.Second,
 	}
 
+	logger.Info("feature flags",
+		"api_key_enforced", cfg.APIKey != "",
+		"epub_upload_enabled", cfg.EnableEPUBUpload,
+	)
+	if cfg.APIKey == "" {
+		logger.Warn("API_KEY is not set; write endpoints are unauthenticated (development only)")
+	}
+
 	go func() {
 		logger.Info("server listening", "addr", cfg.Addr())
 		if err := httpServer.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {

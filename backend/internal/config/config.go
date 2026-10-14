@@ -19,6 +19,13 @@ type Config struct {
 	ServerPort  int
 	CORSOrigins []string
 
+	// APIKey protects write (POST/PUT/DELETE) endpoints. When empty, the API
+	// key check is disabled (intended for local development only).
+	APIKey string
+
+	// EnableEPUBUpload toggles the EPUB upload endpoint. Disabled by default.
+	EnableEPUBUpload bool
+
 	DatabaseURL string
 	DBMaxConns  int32
 	DBMinConns  int32
@@ -50,6 +57,9 @@ func Load() (*Config, error) {
 		ServerHost:  env("SERVER_HOST", "0.0.0.0"),
 		ServerPort:  envInt("SERVER_PORT", 8080),
 		CORSOrigins: splitCSV(env("CORS_ALLOWED_ORIGINS", "http://localhost:5173,chrome-extension://*")),
+
+		APIKey:           env("API_KEY", ""),
+		EnableEPUBUpload: envBool("ENABLE_EPUB_UPLOAD", false),
 
 		DatabaseURL: env("DATABASE_URL", ""),
 		DBMaxConns:  int32(envInt("DB_MAX_CONNS", 20)),

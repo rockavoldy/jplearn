@@ -1,16 +1,24 @@
 import { createRouter, createWebHistory } from 'vue-router'
 
+// EPUB upload is disabled by default; the route is only registered when
+// explicitly enabled at build time via VITE_ENABLE_EPUB_UPLOAD=true.
+const epubUploadEnabled = import.meta.env.VITE_ENABLE_EPUB_UPLOAD === 'true'
+
 const routes = [
     {
         path: '/',
         name: 'library',
         component: () => import('@/views/LibraryView.vue'),
     },
-    {
-        path: '/upload',
-        name: 'upload',
-        component: () => import('@/views/UploadView.vue'),
-    },
+    ...(epubUploadEnabled
+        ? [
+            {
+                path: '/upload',
+                name: 'upload',
+                component: () => import('@/views/UploadView.vue'),
+            },
+        ]
+        : []),
     {
         path: '/articles/:id',
         name: 'article',

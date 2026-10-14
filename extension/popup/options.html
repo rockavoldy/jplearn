@@ -42,12 +42,30 @@
         font-size: 0.85rem;
         margin-left: 0.75rem;
       }
+      .hint {
+        font-size: 0.78rem;
+        color: #6b7280;
+        margin: 0.4rem 0 0;
+      }
+      code {
+        background: #f3f4f6;
+        padding: 0 0.25rem;
+        border-radius: 4px;
+      }
     </style>
   </head>
   <body>
     <h1>JP Reader Settings</h1>
     <label for="apiBase">Backend API base URL</label>
     <input id="apiBase" type="url" placeholder="http://localhost:8080" />
+
+    <label for="apiKey">API key</label>
+    <input id="apiKey" type="password" placeholder="Paste the API_KEY from your backend .env" />
+    <p class="hint">
+      Sent as the <code>X-API-Key</code> header when saving articles. Must match
+      <code>API_KEY</code> on the backend.
+    </p>
+
     <button id="save">Save</button>
     <span id="saved" class="saved"></span>
     <script src="options.js"></script>

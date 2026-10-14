@@ -1,0 +1,5 @@
+# Cloudflare Pages project configuration.
+# Deploy with:  npx wrangler pages deploy dist --project-name=jp-reader
+name = "jp-reader"
+compatibility_date = "2024-11-01"
+pages_build_output_dir = "dist"

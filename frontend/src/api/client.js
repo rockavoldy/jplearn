@@ -1,13 +1,22 @@
 // Thin fetch wrapper around the Go backend REST API.
 const BASE_URL = import.meta.env.VITE_API_BASE_URL || ''
+// Only needed when the SPA performs authenticated writes; the library is
+// read-only today, so this is usually left unset.
+const API_KEY = import.meta.env.VITE_API_KEY || ''
+
+const WRITE_METHODS = ['POST', 'PUT', 'PATCH', 'DELETE']
 
 async function request(path, options = {}) {
+    const method = (options.method || 'GET').toUpperCase()
+    const needsKey = API_KEY && WRITE_METHODS.includes(method)
+
     const res = await fetch(`${BASE_URL}${path}`, {
         headers: {
             Accept: 'application/json',
             ...(options.body && !(options.body instanceof FormData)
                 ? { 'Content-Type': 'application/json' }
                 : {}),
+            ...(needsKey ? { 'X-API-Key': API_KEY } : {}),
             ...(options.headers || {}),
         },
         ...options,

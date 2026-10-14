@@ -1,3 +1,8 @@
+# Local development infrastructure only (Postgres + MinIO).
+#
+# The production stack lives in docker-compose.prod.yml (Postgres + backend
+# image) and uses Cloudflare R2 instead of MinIO. The frontend is deployed to
+# Cloudflare Pages and is not containerized.
 services:
   postgres:
     image: postgres:16-alpine

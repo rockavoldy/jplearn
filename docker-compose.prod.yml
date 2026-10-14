@@ -1,0 +1,52 @@
+# Production deployment for our own server: the Go API (published image) plus
+# PostgreSQL. Object storage is Cloudflare R2 (S3-compatible), configured
+# entirely through the .env file — no local storage service is needed.
+#
+# Usage on the server:
+#   cp .env.example .env   # fill in DATABASE_URL, API_KEY, R2 S3_* values
+#   docker compose -f docker-compose.prod.yml up -d
+#
+# The frontend is NOT part of this stack; it is deployed to Cloudflare Pages.
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: jplearn-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-jpl}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-jpl}
+      POSTGRES_DB: ${POSTGRES_DB:-jplearn}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${POSTGRES_USER:-jpl} -d ${POSTGRES_DB:-jplearn}",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    image: ${BACKEND_IMAGE:-ghcr.io/owner/repo-backend:latest}
+    container_name: jplearn-backend
+    restart: unless-stopped
+    # Load all runtime configuration (API_KEY, DATABASE_URL, R2 S3_*, feature
+    # flags) from the .env file next to this compose file. Point DATABASE_URL
+    # at the compose Postgres service, e.g.
+    #   DATABASE_URL=postgres://jpl:jpl@postgres:5432/jplearn?sslmode=disable
+    env_file:
+      - .env
+    environment:
+      # EPUB upload stays off for now; flip to true to re-enable.
+      ENABLE_EPUB_UPLOAD: ${ENABLE_EPUB_UPLOAD:-false}
+    ports:
+      - "${SERVER_PORT:-8080}:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  pgdata:

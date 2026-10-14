@@ -10,8 +10,7 @@
     "type": "module"
   },
   "action": {
-    "default_title": "Send to JP Reader",
-    "default_popup": "popup/popup.html"
+    "default_title": "Scrape page to JP Reader"
   },
   "content_scripts": [
     {

@@ -1,15 +1,29 @@
-// Background service worker (Manifest V3). Orchestrates extraction on the
-// active tab and POSTs the result to the JP Reader backend.
+// Background service worker (Manifest V3). Clicking the toolbar icon scrapes
+// the active page and POSTs the result to the JP Reader backend, showing
+// success/error feedback on the icon badge.
 const DEFAULT_API_BASE = 'http://localhost:8080'
+const BADGE_CLEAR_MS = 4000
 
-async function getApiBase() {
-    const { apiBase } = await chrome.storage.sync.get('apiBase')
-    return (apiBase || DEFAULT_API_BASE).replace(/\/+$/, '')
+async function getSettings() {
+    const { apiBase, apiKey } = await chrome.storage.sync.get(['apiBase', 'apiKey'])
+    return {
+        apiBase: (apiBase || DEFAULT_API_BASE).replace(/\/+$/, ''),
+        apiKey: (apiKey || '').trim(),
+    }
 }
 
 async function getActiveTab() {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true })
     return tab
+}
+
+/** Shows a transient badge (e.g. "✓" green / "!" red) on the toolbar icon. */
+function showBadge(text, color) {
+    chrome.action.setBadgeBackgroundColor({ color })
+    chrome.action.setBadgeText({ text })
+    setTimeout(() => {
+        chrome.action.setBadgeText({ text: '' })
+    }, BADGE_CLEAR_MS)
 }
 
 /**
@@ -42,13 +56,19 @@ async function captureAndSend() {
         return { ok: false, error: response?.error || 'Extraction failed.' }
     }
 
-    const apiBase = await getApiBase()
+    const { apiBase, apiKey } = await getSettings()
     try {
         const res = await fetch(`${apiBase}/api/articles`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+                'Content-Type': 'application/json',
+                ...(apiKey ? { 'X-API-Key': apiKey } : {}),
+            },
             body: JSON.stringify(response.article),
         })
+        if (res.status === 401) {
+            return { ok: false, error: 'Unauthorized — set a valid API key in the extension options.' }
+        }
         if (!res.ok) {
             let detail = res.statusText
             try {
@@ -65,6 +85,21 @@ async function captureAndSend() {
     }
 }
 
+// Clicking the toolbar icon scrapes the page immediately.
+chrome.action.onClicked.addListener(async () => {
+    chrome.action.setBadgeBackgroundColor({ color: '#6b7280' })
+    chrome.action.setBadgeText({ text: '…' })
+
+    const result = await captureAndSend()
+    if (result?.ok) {
+        showBadge('✓', '#15803d')
+    } else {
+        console.warn('JP Reader capture failed:', result?.error)
+        showBadge('!', '#b91c1c')
+    }
+})
+
+// Kept for programmatic triggers (e.g. context menus, future popup).
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     if (message?.type === 'JP_READER_CAPTURE') {
         captureAndSend().then(sendResponse)

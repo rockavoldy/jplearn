@@ -1,6 +1,10 @@
 <script setup>
 import { RouterLink, RouterView } from 'vue-router'
 import DictionaryTooltip from '@/components/DictionaryTooltip.vue'
+
+// EPUB upload is turned off for now; the nav link and route are hidden unless
+// explicitly enabled at build time via VITE_ENABLE_EPUB_UPLOAD=true.
+const epubUploadEnabled = import.meta.env.VITE_ENABLE_EPUB_UPLOAD === 'true'
 </script>
 
 <template>
@@ -12,7 +16,7 @@ import DictionaryTooltip from '@/components/DictionaryTooltip.vue'
       </RouterLink>
       <nav class="app-nav">
         <RouterLink to="/">Library</RouterLink>
-        <RouterLink to="/upload">Upload EPUB</RouterLink>
+        <RouterLink v-if="epubUploadEnabled" to="/upload">Upload EPUB</RouterLink>
       </nav>
     </header>
 

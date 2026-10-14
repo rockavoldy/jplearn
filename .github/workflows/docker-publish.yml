@@ -1,4 +1,4 @@
-name: Build and publish container images
+name: Build and publish backend image
 
 on:
   push:
@@ -18,19 +18,8 @@ env:
 
 jobs:
   build-and-push:
-    name: ${{ matrix.image }} image
+    name: backend image
     runs-on: ubuntu-latest
-
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - image: backend
-            context: ./backend
-            dockerfile: ./backend/Dockerfile
-          - image: frontend
-            context: ./frontend
-            dockerfile: ./frontend/Dockerfile
 
     steps:
       - name: Checkout repository
@@ -61,7 +50,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ env.REGISTRY }}/${{ github.repository }}-${{ matrix.image }}
+          images: ${{ env.REGISTRY }}/${{ github.repository }}-backend
           tags: |
             type=ref,event=branch
             type=ref,event=pr
@@ -73,16 +62,13 @@ jobs:
       - name: Build and push image
         uses: docker/build-push-action@v6
         with:
-          context: ${{ matrix.context }}
-          file: ${{ matrix.dockerfile }}
-          # Build for both amd64 and arm64 so the images run on Apple Silicon
+          context: ./backend
+          file: ./backend/Dockerfile
+          # Build for both amd64 and arm64 so the image runs on Apple Silicon
           # and ARM servers as well as standard x86 hosts.
           platforms: linux/amd64,linux/arm64
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha,scope=${{ matrix.image }}
-          cache-to: type=gha,mode=max,scope=${{ matrix.image }}
-          # The frontend bundle inlines its API base URL at build time. It
-          # defaults to empty (see frontend/Dockerfile), meaning the SPA calls
-          # the API on its own origin — ideal behind a reverse proxy.
+          cache-from: type=gha,scope=backend
+          cache-to: type=gha,mode=max,scope=backend

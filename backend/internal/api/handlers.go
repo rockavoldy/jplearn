@@ -90,6 +90,11 @@ func (s *Server) handleListArticles(w http.ResponseWriter, r *http.Request) {
 // handleEPUBUpload accepts a multipart .epub file, parses it and persists the
 // resulting book, chapters and images.
 func (s *Server) handleEPUBUpload(w http.ResponseWriter, r *http.Request) {
+	if !s.cfg.EnableEPUBUpload {
+		writeError(w, http.StatusForbidden, "epub upload is disabled")
+		return
+	}
+
 	r.Body = http.MaxBytesReader(w, r.Body, s.cfg.MaxEPUBUploadBytes+1024)
 	if err := r.ParseMultipartForm(s.cfg.MaxEPUBUploadBytes); err != nil {
 		writeError(w, http.StatusBadRequest, "invalid multipart form: "+err.Error())
