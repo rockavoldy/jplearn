@@ -1,0 +1,65 @@
+.PHONY: help infra-up infra-down migrate backend frontend extension extension-zip \
+	import-dict build-backend build-frontend docker-build docker-push
+
+# Image coordinates for GHCR. REPO is auto-detected from the git remote and
+# lower-cased (GHCR requires lowercase repository names).
+REGISTRY     ?= ghcr.io
+REPO         ?= $(shell git config --get remote.origin.url 2>/dev/null | sed -E 's#.+github\.com[:/](.+)\.git#\1#; s#\.git$$##' | tr '[:upper:]' '[:lower:]')
+IMAGE_PREFIX ?= $(REGISTRY)/$(REPO)
+VERSION      ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo dev)
+PLATFORMS    ?= linux/amd64,linux/arm64
+
+help:
+	@echo "Targets:"
+	@echo "  infra-up       Start Postgres + MinIO via docker compose"
+	@echo "  infra-down     Stop infra"
+	@echo "  backend        Run Go API server"
+	@echo "  frontend       Run Vite dev server"
+	@echo "  import-dict    Import jmdict-simplified JSON into Postgres"
+	@echo "                 (uses JMDICT_PATH from .env, or override: JMDICT_PATH=... make import-dict)"
+	@echo "  build-backend  Build Go binary"
+	@echo "  build-frontend Build Vue app"
+	@echo "  extension      Build the MV3 extension into extension/dist"
+	@echo "  extension-zip  Build and package the extension into a loadable zip"
+	@echo "  docker-build   Build backend + frontend images locally"
+	@echo "  docker-push    Build and push backend + frontend images to GHCR"
+
+infra-up:
+	docker compose up -d
+
+infra-down:
+	docker compose down
+
+backend:
+	cd backend && go run ./cmd/api
+
+frontend:
+	cd frontend && npm run dev
+
+import-dict:
+	cd backend && go run ./cmd/import-jmdict $(if $(JMDICT_PATH),-file "$(JMDICT_PATH)",)
+
+build-backend:
+	cd backend && go build -o bin/api ./cmd/api
+
+build-frontend:
+	cd frontend && npm run build
+
+extension:
+	cd extension && npm run build
+
+# Zip the *contents* of dist/ so manifest.json is at the archive root; the
+# resulting file can be loaded directly via chrome://extensions > Load unpacked.
+extension-zip: extension
+	cd extension/dist && zip -r ../jp-reader-extension.zip . -x "*.DS_Store"
+	@echo "Packaged extension/dist -> extension/jp-reader-extension.zip"
+
+docker-build:
+	docker build -t $(IMAGE_PREFIX)-backend:$(VERSION) ./backend
+	docker build -t $(IMAGE_PREFIX)-frontend:$(VERSION) ./frontend
+
+docker-push:
+	docker buildx build --platform $(PLATFORMS) \
+		-t $(IMAGE_PREFIX)-backend:$(VERSION) --push ./backend
+	docker buildx build --platform $(PLATFORMS) \
+		-t $(IMAGE_PREFIX)-frontend:$(VERSION) --push ./frontend

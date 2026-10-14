@@ -1,0 +1,23 @@
+# Build output and local tooling
+bin/
+tmp/
+*.exe
+*.test
+*.out
+
+# Environment / secrets — never bake these into an image.
+.env
+.env.*
+!.env.example
+
+# VCS and editor noise
+.git/
+.gitignore
+.idea/
+.vscode/
+*.swp
+.DS_Store
+
+# Docker meta files
+Dockerfile
+.dockerignore

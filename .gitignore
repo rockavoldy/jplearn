@@ -1,0 +1,26 @@
+# Go
+/backend/bin/
+/backend/tmp/
+*.exe
+*.test
+*.out
+vendor/
+
+# Node
+node_modules/
+/dist/
+*.local
+.DS_Store
+
+# Env
+.env
+.env.*
+!.env.example
+
+# Editor
+.idea/
+.vscode/
+*.swp
+
+# Build artifacts
+/extension/*.zip

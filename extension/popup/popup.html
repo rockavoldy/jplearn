@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <style>
+      body {
+        width: 280px;
+        margin: 0;
+        padding: 1rem;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        color: #1f2328;
+      }
+      h1 {
+        font-size: 1rem;
+        margin: 0 0 0.5rem;
+      }
+      .mark {
+        display: inline-grid;
+        place-items: center;
+        width: 22px;
+        height: 22px;
+        border-radius: 6px;
+        background: #b91c1c;
+        color: #fff;
+        margin-right: 0.4rem;
+        font-size: 0.8rem;
+        vertical-align: middle;
+      }
+      p {
+        font-size: 0.82rem;
+        color: #6b7280;
+        margin: 0.5rem 0;
+      }
+      button {
+        width: 100%;
+        border: none;
+        border-radius: 8px;
+        background: #b91c1c;
+        color: #fff;
+        font-size: 0.9rem;
+        padding: 0.6rem;
+        cursor: pointer;
+        font-weight: 600;
+      }
+      button:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+      .status {
+        font-size: 0.8rem;
+        margin-top: 0.6rem;
+        min-height: 1.2em;
+      }
+      .ok {
+        color: #15803d;
+      }
+      .err {
+        color: #b91c1c;
+      }
+      a {
+        color: #b91c1c;
+        font-size: 0.78rem;
+      }
+    </style>
+  </head>
+  <body>
+    <h1><span class="mark">読</span>JP Reader</h1>
+    <p>Send the current page to your JP Reader library with furigana.</p>
+    <button id="capture">Send to JP Reader</button>
+    <div id="status" class="status"></div>
+    <p><a id="options" href="options.html">Backend settings</a></p>
+    <script src="popup.js"></script>
+  </body>
+</html>

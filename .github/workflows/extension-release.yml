@@ -1,0 +1,71 @@
+name: Build and release browser extension
+
+on:
+  push:
+    tags: ["v*.*.*"]
+  workflow_dispatch:
+
+# Required to create the GitHub Release and upload the zip asset.
+permissions:
+  contents: write
+
+jobs:
+  release-extension:
+    name: Package Manifest V3 extension
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: extension
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: extension/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      # Keep the manifest version in lockstep with the git tag (v1.2.3 -> 1.2.3)
+      # so Chrome shows the correct version on the extensions page.
+      - name: Sync manifest version with the release tag
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          echo "Setting manifest version to $VERSION"
+          jq --arg v "$VERSION" '.version = $v' manifest.json > manifest.json.tmp
+          mv manifest.json.tmp manifest.json
+          cat manifest.json
+
+      - name: Build extension
+        run: npm run build
+
+      # Zip the *contents* of dist/ so manifest.json sits at the archive root.
+      # This makes the downloaded zip directly loadable via "Load unpacked".
+      - name: Package extension
+        run: |
+          cd dist
+          zip -r ../jp-reader-extension.zip . -x '*.DS_Store'
+          cd ..
+          unzip -l jp-reader-extension.zip
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: jp-reader-extension
+          path: extension/jp-reader-extension.zip
+          if-no-files-found: error
+
+      - name: Attach extension to GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: extension/jp-reader-extension.zip
+          generate_release_notes: true
+          fail_on_unmatched_files: true
